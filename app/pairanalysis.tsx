@@ -8,14 +8,14 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
 // Import Markdown component conditionally for platform compatibility
@@ -63,11 +63,13 @@ export default function PairAnalysisScreen() {
   const [selectedPurposes, setSelectedPurposes] = useState<string[]>([]);
   
   const purposes = [
-    'Business Partnership',
     'Romantic Relationship',
-    'Friendship',
-    'Work Collaboration',
-    'Family Dynamics'
+    'Friendship', 
+    'Mentorship',
+    'Business Partnership',
+    'Family Relationship', 
+    'Team Dynamics',
+    'Creative Collaboration'
   ];
 
   useEffect(() => {
@@ -534,14 +536,19 @@ const styles = StyleSheet.create({
   purposesContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+    justifyContent: 'center', // Center all buttons
+    alignItems: 'center',
     marginBottom: 20,
   },
   purposeButton: {
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 20,
-    paddingVertical: 8,
+    borderRadius: 8,
+    paddingVertical: 12,
     paddingHorizontal: 16,
-    margin: 4,
+    margin: 4, // Small margin around each button
+    alignItems: 'center',
+    minHeight: 44,
+    minWidth: 120, // Minimum width for consistency
   },
   purposeButtonSelected: {
     backgroundColor: '#FFB74D',

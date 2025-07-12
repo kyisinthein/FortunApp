@@ -8,7 +8,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Stack, useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import React from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 export default function SignInScreen() {
   const router = useRouter();
@@ -55,34 +55,45 @@ export default function SignInScreen() {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: 'fortunapp://profile',
+          redirectTo: Platform.OS === 'android' ? 'fortunapp://auth/callback' : 'fortunapp://profile',
           skipBrowserRedirect: true,
           queryParams: {
             prompt: 'select_account'
           }
         },
       });
-
+  
       console.log('signInWithOAuth response:', { data, error });
-
+  
       if (error) {
         console.error('Google Sign-In Error:', error);
         alert(`Google Sign-In Error: ${error.message}`);
         return;
       }
-
+  
       if (!data || !data.url) {
         console.error('Google Sign-In did not return a URL.');
         alert('Google Sign-In did not return a URL. Please try again.');
         return;
       }
-
-      console.log('Manually redirecting to:', data.url);
-      const result = await WebBrowser.openAuthSessionAsync(data.url, 'fortunapp://profile');
+  
+      // Force replace joinfortunai.com with app scheme for Android
+      let authUrl = data.url;
+      if (Platform.OS === 'android') {
+        authUrl = authUrl.replace(/https?:\/\/joinfortunai\.com/g, 'fortunapp:/');
+        authUrl = authUrl.replace(/\/auth\/callback/g, '/auth/callback');
+        console.log('Modified auth URL for Android:', authUrl);
+      }
+  
+      console.log('Manually redirecting to:', authUrl);
+      const result = await WebBrowser.openAuthSessionAsync(
+        authUrl, 
+        Platform.OS === 'android' ? 'fortunapp://auth/callback' : 'fortunapp://profile'
+      );
       console.log('WebBrowser.openAuthSessionAsync result:', result);
-
+  
       await handleOAuthResult(result);
-
+  
     } catch (e: any) {
       console.error('Critical error in handleGoogleSignIn:', e);
       alert(`Critical error: ${e.message}`);
@@ -216,7 +227,7 @@ export default function SignInScreen() {
 
         {/* Footer link */}
         <TouchableOpacity
-          onPress={() => router.push('/register')}
+          onPress={() => router.push('/profile')}
           style={styles.footer}
         >
           <ThemedText style={styles.footerText}>
