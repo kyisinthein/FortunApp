@@ -227,7 +227,7 @@ export default function SignInScreen() {
 
         {/* Footer link */}
         <TouchableOpacity
-          onPress={() => router.push('/profile')}
+          onPress={() => router.push('/register')}
           style={styles.footer}
         >
           <ThemedText style={styles.footerText}>
