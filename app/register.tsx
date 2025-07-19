@@ -4,11 +4,12 @@
 import { ThemedText } from '@/components/ThemedText';
 import { supabase } from '@/lib/supabase'; // Adjust path if needed
 import FontAwesome from '@expo/vector-icons/FontAwesome';
+import * as AppleAuthentication from 'expo-apple-authentication';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Stack, useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser'; // Add this import
 import React from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -92,10 +93,58 @@ export default function RegisterScreen() {
     }
   };
 
-  const handleAppleSignUp = () => {
-    // Implement Apple sign-up logic here
-    // For now, we'll just navigate to the dashboard
-    router.replace('/complete_profile');
+  const handleAppleSignUp = async () => {
+    try {
+      // Check if Apple Authentication is available
+      const isAvailable = await AppleAuthentication.isAvailableAsync();
+      if (!isAvailable) {
+        alert('Apple Sign-In is not available on this device.');
+        return;
+      }
+
+      console.log('Attempting Apple Sign-Up...');
+      
+      // Request Apple authentication
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+      });
+
+      console.log('Apple credential received:', credential);
+
+      // Sign in with Supabase using the Apple credential
+      const { data, error } = await supabase.auth.signInWithIdToken({
+        provider: 'apple',
+        token: credential.identityToken!,
+        nonce: credential.nonce,
+      });
+
+      if (error) {
+        console.error('Apple Sign-Up Error:', error);
+        alert(`Apple Sign-Up Error: ${error.message}`);
+        return;
+      }
+
+      if (data.session) {
+        console.log('Apple Sign-Up successful, session established');
+        // For new users, redirect to complete_profile
+        router.replace('/complete_profile');
+      } else {
+        console.error('Apple Sign-Up did not establish a session');
+        alert('Apple Sign-Up failed. Please try again.');
+      }
+
+    } catch (e: any) {
+      if (e.code === 'ERR_REQUEST_CANCELED') {
+        console.log('Apple Sign-Up was cancelled by user');
+        // Don't show an alert for user cancellation
+        return;
+      }
+      console.error('Critical error in handleAppleSignUp:', e);
+      alert(`Apple Sign-Up Error: ${e.message}`);
+    }
   };
 
   return (
@@ -109,19 +158,10 @@ export default function RegisterScreen() {
         end={{ x: 1, y: 1 }}
         style={styles.container}
       >
-        {/* Back arrow */}
-        {/* <TouchableOpacity
-          onPress={() => router.push('/')}
-          style={styles.backButton}
-        >
-          <FontAwesome name="arrow-left" size={28} color="#FFFFFF" />
-        </TouchableOpacity> */}
-
         {/* Header + underline */}
         <View style={styles.headerContainer}>
           <ThemedText type="title" style={styles.headerText}>
             Create an Account
-            
           </ThemedText>
           <LinearGradient
             colors={['#FFD700', '#FF9900', '#FF5C39']}
@@ -149,21 +189,24 @@ export default function RegisterScreen() {
             </ThemedText>
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[styles.button, styles.appleButton]}
-            activeOpacity={0.8}
-            onPress={handleAppleSignUp}
-          >
-            <FontAwesome
-              name="apple"
-              size={24}
-              color="#FFFFFF"
-              style={styles.icon}
-            />
-            <ThemedText style={[styles.buttonText, styles.appleText]}>
-              Sign Up with Apple
-            </ThemedText>
-          </TouchableOpacity>
+          {/* Only show Apple button on iOS */}
+          {Platform.OS === 'ios' && (
+            <TouchableOpacity
+              style={[styles.button, styles.appleButton]}
+              activeOpacity={0.8}
+              onPress={handleAppleSignUp}
+            >
+              <FontAwesome
+                name="apple"
+                size={24}
+                color="#FFFFFF"
+                style={styles.icon}
+              />
+              <ThemedText style={[styles.buttonText, styles.appleText]}>
+                Sign Up with Apple
+              </ThemedText>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Footer link */}

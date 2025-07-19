@@ -4,6 +4,7 @@
 import { ThemedText } from '@/components/ThemedText';
 import { supabase } from '@/lib/supabase';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
+import * as AppleAuthentication from 'expo-apple-authentication';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Stack, useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
@@ -146,8 +147,62 @@ export default function SignInScreen() {
   };
 
   const handleAppleSignIn = async () => {
-    // Implement Apple sign-in logic here (similar to Google)
-    router.replace('/');
+    try {
+      // Check if Apple Authentication is available
+      const isAvailable = await AppleAuthentication.isAvailableAsync();
+      if (!isAvailable) {
+        alert('Apple Sign-In is not available on this device.');
+        return;
+      }
+
+      console.log('Attempting Apple Sign-In...');
+      
+      // Request Apple authentication
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+      });
+
+      console.log('Apple credential received:', credential);
+
+      // Sign in with Supabase using the Apple credential
+      const { data, error } = await supabase.auth.signInWithIdToken({
+        provider: 'apple',
+        token: credential.identityToken!,
+        nonce: credential.nonce,
+      });
+
+      if (error) {
+        console.error('Apple Sign-In Error:', error);
+        // More specific error handling
+        if (error.message.includes('Unacceptable audience')) {
+          alert('Apple Sign-In configuration issue. Please contact support or try again later.');
+        } else {
+          alert(`Apple Sign-In Error: ${error.message}`);
+        }
+        return;
+      }
+
+      if (data.session) {
+        console.log('Apple Sign-In successful, session established');
+        // For existing users, redirect to profile
+        router.replace('/profile');
+      } else {
+        console.error('Apple Sign-In did not establish a session');
+        alert('Apple Sign-In failed. Please try again.');
+      }
+
+    } catch (e: any) {
+      if (e.code === 'ERR_REQUEST_CANCELED') {
+        console.log('Apple Sign-In was cancelled by user');
+        // Don't show an alert for user cancellation
+        return;
+      }
+      console.error('Critical error in handleAppleSignIn:', e);
+      alert(`Apple Sign-In Error: ${e.message}`);
+    }
   };
 
   return (
@@ -181,22 +236,6 @@ export default function SignInScreen() {
             activeOpacity={0.8}
             onPress={handleGoogleSignIn}
           >
-            {/* <FontAwesome
-              name="google"
-              size={24}
-              color="#DB4437"
-              style={styles.icon}
-            />
-            <ThemedText style={[styles.buttonText, styles.googleText]}>
-              Login with Google
-            </ThemedText>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.button, styles.differentAccountButton]}
-            activeOpacity={0.8}
-            onPress={handleGoogleSignInDifferentAccount}
-          > */}
             <FontAwesome
               name="google"
               size={24}
@@ -208,21 +247,24 @@ export default function SignInScreen() {
             </ThemedText>
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[styles.button, styles.appleButton]}
-            activeOpacity={0.8}
-            onPress={handleAppleSignIn}
-          >
-            <FontAwesome
-              name="apple"
-              size={24}
-              color="#FFFFFF"
-              style={styles.icon}
-            />
-            <ThemedText style={[styles.buttonText, styles.appleText]}>
-              Login with Apple
-            </ThemedText>
-          </TouchableOpacity>
+          {/* Only show Apple button on iOS */}
+          {Platform.OS === 'ios' && (
+            <TouchableOpacity
+              style={[styles.button, styles.appleButton]}
+              activeOpacity={0.8}
+              onPress={handleAppleSignIn}
+            >
+              <FontAwesome
+                name="apple"
+                size={24}
+                color="#FFFFFF"
+                style={styles.icon}
+              />
+              <ThemedText style={[styles.buttonText, styles.appleText]}>
+                Login with Apple
+              </ThemedText>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Footer link */}
