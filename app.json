@@ -24,7 +24,7 @@
       }
     },
     "android": {
-      "package": "com.kyisinthein.FortunApp",
+      "package": "com.kyisinthein.FortunApp2",
       "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
